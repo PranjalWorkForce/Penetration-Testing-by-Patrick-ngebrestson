@@ -28,3 +28,17 @@ The Basics of Hacking and Penetration Testing by Dr. Patrick Engebretson is a hi
 4. Attack (Exploitation): Safely taking advantage of identified vulnerabilities to gain access to the system.
 
 Reporting: Documenting the findings, explaining the risks, and providing actionable mitigation strategies to improve security
+
+
+
+
+
+Key Tools
+CoveredRather than focusing purely on theory, the book uses Kali Linux (and previously BackTrack Linux in earlier editions) as a lab environment to teach hands-on application of fundamental security tools: 
+Reconnaissance: Google Hacking, MetaGooFil, and dig
+
+Scanning: Nmap and Nessus
+
+Exploitation: Metasploit and Netcat
+
+Post-Exploitation: Rootkits and maintaining access
