@@ -1,0 +1,253 @@
+# OSINT Top 10  Theory Notes
+
+Study notes on the concepts behind open-source intelligence (OSINT)
+gathering, framed around the ten source categories covered earlier.
+Focused on the "why" and "how it works" rather than tool usage.
+
+---
+
+## 1. What is OSINT?
+
+**Open Source Intelligence (OSINT)** is the practice of collecting and
+analyzing information from publicly available sources to produce
+actionable intelligence about a target a person, organization, domain,
+or system.
+
+**"Open source" here means "publicly accessible," not "open-source software."**
+Sources include:
+- Public records (WHOIS, business registries, court records)
+- DNS and internet infrastructure data
+- Search engines and cached pages
+- Social media and forums
+- Code repositories
+- Historical web archives
+- Metadata embedded in files
+- Data breaches that have become public
+
+### Core principle: passive vs. active recon
+- **Passive** you never send traffic to (or interact with) the target
+  itself. You query third parties who already hold data about the target
+  (WHOIS registries, certificate transparency logs, search engines,
+  archives). The target has no way of knowing you looked.
+- **Active** you interact directly with the target's systems (port
+  scanning, sending crafted requests, brute-forcing subdomains via DNS
+  queries to their nameservers). This can be logged, detected, or
+  blocked by the target.
+
+Most of the "Top 10" list leans passive by design that's what makes it
+usable early in an assessment, before authorization for active testing is
+even needed in many contexts (though scope/legality still matters).
+
+---
+
+## 2. The OSINT lifecycle
+
+A standard intelligence cycle applied to OSINT work:
+
+1. **Planning / direction** ” define what you actually need to know and why (a domain's attack surface? a person's public footprint? a company's vendor relationships?)
+2. **Collection** ” pull raw data from sources (this is what tools like Sublist3r, theHarvester, etc. automate)
+3. **Processing** ” normalize/deduplicate raw data (e.g., merging subdomain lists from five sources into one clean list)
+4. **Analysis** ” turn raw data into meaning (which subdomains look like forgotten dev/staging environments? which employee emails suggest an org chart?)
+5. **Dissemination** ” turn analysis into a report or actionable next step
+
+A script that just dumps ten tools' raw output (like the one built
+earlier) automates steps 2â€“3. Steps 1, 4, and 5 are still human work â€”
+this is a common gap people underestimate: **automation collects, it
+doesn't (by itself) produce intelligence.**
+
+---
+
+## 3. Theory behind each of the Top 10 categories
+
+### 3.1 WHOIS ” registry data
+Domain registration is a contractual record kept by registrars and
+published (partially) via the WHOIS protocol (RFC 3912) and, increasingly,
+RDAP (Registration Data Access Protocol), which is replacing WHOIS as the
+modern, structured standard.
+
+**Key theory point:** Since GDPR (2018) and similar privacy regulations,
+most registrant personal data is redacted by default ("WHOIS privacy" /
+proxy registration). WHOIS today mostly reveals: registrar, creation/
+expiry/update dates, and nameservers â€” useful for **infrastructure
+fingerprinting and timeline analysis** (e.g., "this domain was registered
+2 weeks before a phishing campaign began") more than for identifying a
+person directly.
+
+### 3.2 DNS records
+DNS is a distributed, hierarchical, publicly-queryable database mapping
+names to resources. Each record type theoretically reveals something
+different:
+- **A/AAAA**  where a service is actually hosted (IP  often reveals hosting provider/cloud region)
+- **MX** mail provider (Google Workspace? Microsoft 365? self-hosted?)
+- **NS**  who manages DNS (can reveal a CDN/DNS provider like Cloudflare)
+- **TXT**  often contains SPF/DKIM/DMARC (email security posture) or domain-verification strings for third-party services (which reveals what SaaS tools an org uses)
+- **SOA** administrative contact and refresh/retry timing metadata
+
+**Zone transfers (AXFR)** are the classic DNS misconfiguration: if a
+nameserver allows an unauthenticated transfer, an attacker can pull the
+*entire* DNS zone in one request â€” this crosses from purely passive into
+"technically active but extremely lightweight" recon, which is why tools
+like `dnsrecon` test it.
+
+### 3.3 Certificate Transparency (crt.sh)
+Since ~2013 (and mandatory for public CAs since 2018 per CA/Browser Forum
+and major browser policy), every publicly-trusted TLS certificate issued
+must be logged to public, append-only **Certificate Transparency (CT)
+logs**. This was designed as a *defensive* mechanism (so domain owners can
+detect fraudulently issued certs for their domain) but became one of the
+best OSINT subdomain sources by side effect: **any subdomain that ever
+got an HTTPS certificate is now permanently, publicly discoverable** â€”
+even if that subdomain is long decommissioned. `crt.sh` is simply a
+searchable frontend over these logs.
+
+**Theory point:** This is why CT logs are considered a superior data
+source to search-engine-based enumeration â€” it's structurally
+comprehensive (every cert, by design) rather than sample-based (whatever
+a search engine happened to crawl).
+
+### 3.4 & 3.5 Subdomain enumeration (Sublist3r, Amass)
+Subdomain discovery generally falls into methods that mirror the
+passive/active split:
+- **Passive sources**: search engine dorking, CT logs, DNS aggregator
+  APIs, threat-intel feeds, historical DNS datasets
+- **Active methods**: DNS brute-forcing (trying a wordlist of common
+  subdomain names against the target's nameservers), permutation/
+  alteration scanning (generating likely variants of known subdomains)
+
+Sublist3r is primarily a **passive aggregator** (queries multiple search
+engines and services). Amass is more comprehensive and supports both
+modes â€” `-passive` mode restricts it to non-target-touching sources,
+which is why the earlier script defaults to that flag.
+
+**Why this matters conceptually:** an organization's actual attack
+surface is very often larger than what's linked from its main website.
+Forgotten staging servers, old marketing microsites, and
+acquisition-era domains are disproportionately likely to be
+under-patched â€” subdomain enumeration is often the highest-value step in
+recon precisely because it expands the target set beyond what's obvious.
+
+### 3.6 theHarvester â€” search-engine-derived OSINT
+Conceptually, this automates what used to be manual "Google dorking":
+constructing targeted search queries (`site:`, `intitle:`, `filetype:`,
+etc.) to pull structured info â€” emails, subdomains, employee names â€” out
+of what search engines have indexed. It packages this against many
+engines/sources at once instead of doing it by hand.
+
+**Theory point â€” indexing lag:** search-engine-derived OSINT reflects
+whatever was crawled and indexed, which can be stale or incomplete. It's
+a *sample* of what's public, not a *complete* record (contrast with CT
+logs above, which are structurally complete for their specific data
+type).
+
+### 3.7 Shodan â€” internet-wide scan data
+Shodan continuously scans the entire public IPv4 space (and increasingly
+IPv6/other protocols) and stores service banners, ports, and
+fingerprints. When you query Shodan for a target, **you are not scanning
+the target â€” you're reading Shodan's *own* previous scan results.**
+
+**Theory point:** this is what makes Shodan queries genuinely passive
+even though the underlying data (open ports, exposed services) looks
+like the output of an active scan. It also means the data can lag
+reality â€” Shodan may show a service that was already patched or taken
+down since its last scan pass. Understanding this staleness is important
+so you don't treat Shodan results as ground truth.
+
+### 3.8 Wayback Machine / web archives
+The Internet Archive periodically crawls and snapshots web pages,
+preserving historical versions. For OSINT purposes this is valuable for
+two theoretical reasons:
+1. **Content that has since been removed can still be recovered** â€” old
+   admin panels, exposed API endpoints, internal documentation
+   accidentally published and later taken down.
+2. **URL structure reveals application architecture over time** â€”
+   parameter names, old API versions, and deprecated endpoints often
+   still function even after being unlinked from the current site.
+
+The CDX API is simply Archive.org's index query interface â€” it lets you
+ask "what URLs under this domain have you ever crawled" without having
+to actually fetch every snapshot.
+
+### 3.9 Tech fingerprinting (HTTP headers, robots.txt, whatweb-style tools)
+Every HTTP response leaks metadata by default unless deliberately
+stripped: `Server`, `X-Powered-By`, cookie naming conventions, and error
+page structures often reveal the web server, framework, and sometimes
+exact version in use. `robots.txt` â€” designed to tell search-engine
+crawlers what *not* to index â€” frequently doubles as an unintentional map
+of an application's sensitive or administrative paths (a well-known
+irony: robots.txt exists to keep pages out of Google, but publishes their
+paths to anyone reading the file directly).
+
+**Theory point:** this category sits right at the passive/active
+boundary. A single HTTP GET request is about as minimal an "active"
+footprint as exists, but it is technically a direct interaction with the
+target, unlike everything above it.
+
+### 3.10 GitHub / code-hosting search
+Developers and automated CI/CD systems routinely commit things that
+shouldn't be public: hardcoded internal hostnames, API keys, internal IP
+ranges, `.env` files, or config referencing a company's real
+infrastructure â€” sometimes in the target org's own repos, but very often
+in *personal* repos of employees or ex-employees, or in forks/mirrors.
+
+**Theory point:** this reflects a broader OSINT principle â€” **an
+organization's exposure isn't limited to what it directly controls.**
+Third-party repos, pastebins, and cloud storage misconfigurations
+regularly leak more than the org's own infrastructure does, which is why
+"search other people's public data about the target" is its own category
+distinct from "enumerate the target's own infrastructure."
+
+---
+
+## 4. Cross-cutting concepts worth knowing
+
+- **Data source completeness vs. freshness tradeoff.** CT logs are
+  structurally complete but only for certs that were ever issued; search
+  engines are fresh-ish but sample-based; Shodan/Wayback are complete for
+  what they've scanned/crawled, but can lag current reality. Good OSINT
+  practice cross-references multiple source types rather than trusting
+  one.
+- **False positives / stale data.** Because so much of this is
+  historical or cached, always timestamp findings and treat old data as
+  a *lead to verify*, not a confirmed current fact.
+- **Correlation over single data points.** A single leaked email or one
+  odd subdomain rarely matters alone â€” value comes from correlating
+  across sources (e.g., a subdomain from crt.sh + a tech stack hint from
+  headers + an employee list from theHarvester together paint a much
+  clearer picture than any one source).
+- **Legal/ethical framing.** "Passive" and "legal" are not synonyms.
+  Aggregating public data about a person can still implicate privacy law
+  (GDPR, CCPA) depending on jurisdiction and purpose, even though no
+  system was "hacked." Scope and intent matter as much as the technical
+  method.
+- **OSINT vs. reconnaissance vs. threat intelligence** â€” related but
+  distinct: OSINT is the *source type* (public data), reconnaissance is
+  the *activity* (gathering info about a specific target, often as
+  pre-attack or pre-assessment prep), and threat intelligence is
+  *analysis output* (turning gathered data into predictions/context about
+  threats). The Top 10 tools are reconnaissance tooling that happens to
+  draw exclusively from OSINT sources.
+
+---
+
+## 5. Suggested way to internalize this
+
+A useful mental model: sort each of the ten sources along two axes â€”
+
+```
+                    Structurally complete
+                            ^
+         crt.sh  â€¢          |
+                             |          â€¢ Shodan (for scanned hosts)
+   DNS records  â€¢            |
+                             |
+Sample-based/indexed <-------+-------> Historically archived
+                             |
+      theHarvester â€¢         |          â€¢ Wayback Machine
+                             |
+        GitHub search â€¢      |     â€¢ WHOIS (registry, not content)
+                            Sparse/incomplete
+```
+
+Thinking in terms of *what kind of gap* each source fills (rather than
+memorizing tool names) makes it much easier to reason about which source
+to reach for, and how much to trust a given result.
