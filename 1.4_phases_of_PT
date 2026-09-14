@@ -1,0 +1,88 @@
+# Penetration Testing â€” Chapter 1 Notes
+### (Based on *The Basics of Hacking and Penetration Testing* â€” Patrick Engebretson)
+
+Penetration testing follows a structured methodology, usually broken into **5 phases**. Each phase builds on the last â€” skipping one weakens the whole engagement.
+
+---
+
+## 1. Reconnaissance (Recon)
+**Goal:** Gather as much information about the target as possible *before* touching it directly.
+
+- **Passive recon** â€” no direct interaction with target (safest, hardest to detect)
+  - Google dorking, WHOIS lookups, social media, job postings, DNS records
+  - Example: `whois example.com`, searching LinkedIn for employee names/roles
+- **Active recon** â€” light direct interaction (slightly detectable)
+  - Ping sweeps, visiting the website, DNS zone transfers
+  - Example: `nslookup`, `dig example.com any`
+
+**Why it matters:** The more info gathered here, the more targeted (and successful) later phases become.
+
+---
+
+## 2. Scanning
+**Goal:** Identify live hosts, open ports, running services, and versions â€” turning recon info into a technical map of the attack surface.
+
+- **Port scanning** â€” find open ports/services
+  - Example: `nmap -sV -p- 192.168.1.10`
+- **Vulnerability scanning** â€” match services to known vulnerabilities
+  - Example: `Nessus`, `OpenVAS`, `nmap --script vuln`
+- **Network mapping** â€” understand topology, firewalls, live systems
+
+**Why it matters:** This phase tells you *where the doors and windows are* before you try to break in.
+
+---
+
+## 3. Exploitation
+**Goal:** Actually gain access by exploiting a discovered vulnerability.
+
+- Using known exploits against outdated software
+  - Example: `Metasploit` module against an unpatched SMB service (e.g., EternalBlue on old Windows)
+- Password attacks (brute force, credential stuffing)
+  - Example: `Hydra` against an SSH login
+- Web app attacks (SQLi, XSS) to gain foothold
+  - Example: SQL injection via `' OR 1=1 --` on a vulnerable login form
+
+**Why it matters:** This is the "break-in" phase â€” proving a vulnerability is real and exploitable, not just theoretical.
+
+---
+
+## 4. Post-Exploitation
+**Goal:** Once inside, determine the *value* of the compromised system and how far the access extends.
+
+- **Privilege escalation** â€” going from a low-level user to admin/root
+  - Example: exploiting a misconfigured SUID binary on Linux
+- **Pivoting** â€” using the compromised machine to reach other internal systems
+- **Data gathering** â€” locating sensitive files, credentials, databases
+- **Maintaining access** â€” backdoors/persistence (only within agreed scope!)
+
+**Why it matters:** Shows the *real-world impact* of the vulnerability â€” e.g., "this flaw could lead to full domain compromise," not just "this port was open."
+
+---
+
+## 5. Reporting
+**Goal:** Communicate findings clearly to the client â€” arguably the **most important phase**.
+
+- Includes:
+  - Executive summary (non-technical, for management)
+  - Technical findings (detailed, for IT/security teams)
+  - Risk ratings (Critical/High/Medium/Low)
+  - Proof-of-concept evidence (screenshots, logs)
+  - **Remediation recommendations**
+
+**Why this phase is critical:**
+- A pentest has **zero value** if findings aren't communicated in a way that leads to fixes.
+- Clients pay for the *report*, not the hacking â€” the exploitation is just evidence-gathering for it.
+- Poor reporting = vulnerabilities stay unfixed even after a "successful" test.
+- Good reporting bridges the gap between technical risk and business decision-making (budget, priority, compliance).
+
+---
+
+## Quick Summary Table
+
+| Phase | Purpose | Example Tool/Technique |
+|---|---|---|
+| Recon | Gather info | WHOIS, Google dorking |
+| Scanning | Map attack surface | Nmap, Nessus |
+| Exploitation | Gain access | Metasploit, SQLi |
+| Post-Exploitation | Assess impact | Privilege escalation, pivoting |
+| Reporting | Communicate & fix | Risk-rated report + remediation steps |
