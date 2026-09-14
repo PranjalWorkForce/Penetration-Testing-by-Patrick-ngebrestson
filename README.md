@@ -1,14 +1,14 @@
 # Penetration-Testing-by-Patrick-ngebrestson
-Practicing The Basics of Hacking and Penetration Testing serves as an introduction to the steps required to complete a penetration test or perform an ethical hack from beginning to end. This book makes ethical hacking and penetration testing easy
+#Practicing The Basics of Hacking and Penetration Testing serves as an introduction to the steps required to complete a penetration test or perform an ethical hack from beginning to end. This book makes ethical hacking and penetration testing easy
 
 
-**CONTENT**
+#**CONTENT**
 *Introduction*
-1.1 Introduction 
-1.2 Setup Lab
-1.3 Use of Hacking Lab
-1.4 Phases of PT
-1.5 Versions of Linux Distros 
+#1.1 Introduction 
+#1.2 Setup Lab
+#1.3 Use of Hacking Lab
+#1.4 Phases of PT
+#1.5 Versions of Linux Distros 
 
 
 *Reconnaissance*
