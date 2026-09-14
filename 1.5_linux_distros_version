@@ -1,0 +1,143 @@
+# Linux Distributions for Penetration Testing
+### Detailed breakdown â€” features, experience, and preinstalled tools
+
+---
+
+## 1. Kali Linux
+**Base:** Debian | **Type:** Attack platform (general-purpose)
+
+**Unique feature:** The industry-standard pentest distro â€” successor to BackTrack. Massive community, official certifications (OSCP) built around it, rolling release with constant tool updates.
+
+**Experience:**
+- **GUI:** XFCE by default (lightweight, customizable) â€” also offers GNOME/KDE variants
+- **CLI:** Central to the workflow â€” most tools are run from terminal, though many have GUI wrappers (e.g., Wireshark, Burp Suite)
+- **Friendliness:** Beginner-friendly *documentation-wise* (huge tutorials/community), but the sheer number of tools can overwhelm total newcomers
+
+**Preinstalled tools:** Nmap, Metasploit Framework, Burp Suite (Community), Aircrack-ng, Wireshark, John the Ripper, Hydra, SQLmap, Hashcat â€” 600+ tools organized by category (Info Gathering, Vuln Analysis, Exploitation, etc.)
+
+---
+
+## 2. BackBox
+**Base:** Ubuntu | **Type:** Attack platform (network/web pentesting)
+
+**Unique feature:** Built for speed and minimalism â€” lighter on system resources than Kali, with a clean, organized menu structure grouping tools by pentest phase.
+
+**Experience:**
+- **GUI:** XFCE, polished and uncluttered â€” arguably more "everyday usable" as a desktop OS than Kali
+- **CLI:** Still terminal-heavy for actual tool use, but the GUI menu makes tool *discovery* easier for beginners
+- **Friendliness:** Considered one of the more approachable distros for newcomers due to its simplicity and low resource footprint (good for older/weaker machines)
+
+**Preinstalled tools:** Nmap, Wireshark, Metasploit, SQLmap, Social Engineering Toolkit (SET), plus system/forensics utilities â€” smaller curated toolset vs Kali's massive one.
+
+---
+
+## 3. Blackbuntu
+**Base:** Ubuntu | **Type:** Attack platform (largely discontinued/legacy)
+
+**Unique feature:** Designed specifically for security training and penetration testing students â€” one of the earlier Ubuntu-based security distros before Kali dominated the space.
+
+**Experience:**
+- **GUI:** GNOME-based, standard Ubuntu look and feel â€” very familiar if you've used regular Ubuntu
+- **CLI:** Standard Ubuntu terminal experience
+- **Friendliness:** Very approachable for Ubuntu users, but the project is largely inactive today â€” mentioned in books mostly for historical/educational context
+
+**Preinstalled tools:** Similar early toolset to BackTrack-era tools (Nmap, Metasploit, Wireshark) â€” dated compared to modern distros.
+
+---
+
+## 4. BlackArch
+**Base:** Arch Linux | **Type:** Attack platform (advanced/power users)
+
+**Unique feature:** The largest tool repository of any pentest distro (2000+ tools), rolling release, can be installed as a full OS *or* added as a repository on top of an existing Arch install.
+
+**Experience:**
+- **GUI:** No default desktop â€” often run with a minimal window manager (or none at all); very manual setup
+- **CLI:** Extremely CLI-centric â€” Arch's philosophy is "do it yourself," so expect to configure a lot manually
+- **Friendliness:** **Not beginner-friendly.** Steep learning curve, assumes familiarity with Arch's package manager (`pacman`) and manual system configuration
+
+**Preinstalled tools:** Depends on install choice â€” can install the entire 2000+ tool repo or cherry-pick categories (recon, exploitation, forensics, malware analysis, etc.)
+
+---
+
+## 5. Pentoo
+**Base:** Gentoo | **Type:** Attack platform (customization-focused)
+
+**Unique feature:** Source-based like Gentoo itself â€” tools can be compiled from source for deep customization/optimization; live USB with persistence support (save changes across reboots).
+
+**Experience:**
+- **GUI:** XFCE, minimal by default
+- **CLI:** Heavy CLI use, plus Gentoo's `emerge` package system if you want to build/add tools from source
+- **Friendliness:** Aimed at intermediate/advanced users comfortable with Gentoo-style system management â€” not ideal as a first distro
+
+**Preinstalled tools:** Nmap, Aircrack-ng, Metasploit, wireless & hardware-hacking tools are a particular strength (custom kernel with wireless injection patches).
+
+---
+
+## 6. SamuraiWTF (Web Testing Framework)
+**Base:** Ubuntu | **Type:** Attack platform (web application testing ONLY)
+
+**Unique feature:** Laser-focused on **web app pentesting** â€” not a general-purpose distro. Built around the full web attack lifecycle (recon â†’ mapping â†’ discovery â†’ exploitation of web apps).
+
+**Experience:**
+- **GUI:** Ubuntu-based desktop, simple and clean
+- **CLI:** Mix of CLI tools and heavily GUI-based tools (since web testing tools like ZAP/Burp are proxy-based GUI apps)
+- **Friendliness:** Friendly for beginners **specifically learning web app security** â€” narrower scope makes it less overwhelming than Kali
+
+**Preinstalled tools:** OWASP ZAP, Burp Suite, W3AF, SQLmap, Ratproxy â€” plus intentionally vulnerable web apps (like WebGoat) for practice.
+
+---
+
+## 7. Katana
+**Base:** Multi-distro live suite (not a single OS) | **Type:** Attack platform (all-in-one USB toolkit)
+
+**Unique feature:** A **bootable multi-distro USB collection** â€” bundles Kali, forensics tools, Windows-based utilities, and antivirus/recovery tools all on one portable drive with a boot menu to choose which environment to load.
+
+**Experience:**
+- **GUI/CLI:** Varies entirely depending on which bundled OS/tool you boot into
+- **Friendliness:** Convenient for practitioners who want "one USB for everything," but not really a standalone learning environment â€” more a **toolkit of toolkits**
+
+**Preinstalled tools:** Whatever is bundled in each included distro/tool (varies by Katana version) â€” essentially a portable Swiss-army-knife USB.
+
+---
+
+## 8. Fedora (Security Lab Spin)
+**Base:** Fedora/Red Hat family | **Type:** General OS with an optional security spin
+
+**Unique feature:** Fedora itself is a cutting-edge general-purpose distro (upstream for RHEL); the **Security Lab** spin adds a curated set of pentest/forensics tools on top for teaching environments.
+
+**Experience:**
+- **GUI:** GNOME by default â€” polished, modern, very "normal desktop OS" feeling
+- **CLI:** Uses `dnf` package manager; standard Fedora terminal experience
+- **Friendliness:** Very approachable as a general OS; the Security Lab spin is good for **classroom/lab settings** but isn't as tool-rich as Kali for real engagements
+
+**Preinstalled tools (Security Lab):** Wireshark, Medusa, Yersinia, sqlninja, and forensic tools â€” smaller, curriculum-oriented toolset.
+
+---
+
+## 9. Red Hat Enterprise Linux (RHEL)
+**Base:** Independent (RPM-based) | **Type:** **Target/production platform â€” NOT a hacking distro**
+
+**Unique feature:** Not built for offense at all â€” it's an enterprise-grade server OS. Included in pentesting books as an example of systems you'll be **attacking or securing** in real engagements, not attacking *from*.
+
+**Experience:**
+- **GUI:** Optional (often run headless/server-only in production)
+- **CLI:** Enterprise-grade CLI experience, `dnf`/`yum` package management, heavy focus on stability over cutting-edge tools
+- **Friendliness:** Friendly for sysadmins, not relevant for offensive tooling
+
+**Preinstalled tools:** None offensive â€” standard enterprise server software (web servers, databases, etc.) â€” i.e., the kind of system a pentester needs to know how to enumerate and exploit.
+
+---
+
+## Quick Comparison Table
+
+| Distro | Best For | Skill Level | Desktop Feel |
+|---|---|---|---|
+| Kali | General pentesting (default choice) | Beginnerâ€“Advanced | Polished, tool-heavy |
+| BackBox | Lightweight general pentesting | Beginner | Clean, minimal |
+| Blackbuntu | Legacy/educational reference | Beginner | Standard Ubuntu |
+| BlackArch | Power users, huge tool variety | Advanced | Minimal/manual |
+| Pentoo | Deep customization, wireless attacks | Intermediateâ€“Advanced | Minimal |
+| SamuraiWTF | Web app testing only | Beginner (web-focused) | Simple |
+| Katana | Portable multi-tool USB | Any (practitioner convenience) | Varies |
+| Fedora Security Lab | Classroom/teaching labs | Beginner | Modern, polished |
+| Red Hat (RHEL) | Learning what to *attack* (target OS) | N/A (defensive/target) | Enterprise, server-oriented |
