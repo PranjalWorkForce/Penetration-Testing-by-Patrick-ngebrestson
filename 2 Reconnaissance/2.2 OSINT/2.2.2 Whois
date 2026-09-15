@@ -1,0 +1,148 @@
+# WHOIS OSINT â€” Explained Like You're 10 Years Old
+
+Imagine every house on your street has an "owner's card" stuck to the door â€” it says who owns the house, when they moved in, and who to call if there's a problem. The internet has something just like that for websites. It's called WHOIS.
+
+WHOIS OSINT is basically the game of using those owner's cards to become a detective: figure out who really owns a website, what else they own, and whether they're up to something sketchy.
+
+---
+
+## 1. The Basic Building Blocks
+
+### Domain
+The website's "address" â€” like `google.com`. Just like a house has a street address, a website has a domain name.
+
+### WHOIS Record
+The "owner's card" for that address. It tells you:
+- Who registered the domain
+- When they registered it
+- When it expires
+- Which company they registered it through
+- Which "phonebook" (nameserver) points visitors to the site
+
+### Registrar
+The shop where someone "buys" or rents a domain name â€” like GoDaddy or Namecheap. Think of it like the real-estate agency that sold the house. The registrar's name shows up in WHOIS records, and if something bad happens, you can contact the registrar for help.
+
+### Registrant
+The person or company who owns the domain. This is the actual "owner" â€” like the name on the house deed.
+
+### Registrant Organization
+If a company (not a person) owns the domain, this field shows the company's name.
+
+### Registrant Email
+The contact email the owner gave when they registered the site. Detectives love this field because it can be searched to find other websites owned by the same person (more on that below).
+
+### Registration Date & Expiry Date
+- Registration date = the day the domain was "born" (first registered).
+- Expiry date = the day the domain "rent" runs out, unless renewed.
+
+A brand-new domain created just days before a scam email goes out is a big red flag â€” like a fake shop popping up overnight.
+
+### Nameservers (NS)
+Think of nameservers as the phonebook that tells the internet "when someone types this domain, send them to this computer." Criminals rarely change their phonebook often (it's a hassle), so if many suspicious sites share the same nameservers, they're probably run by the same person or group.
+
+### Domain Status Codes
+Little tags that show what "state" a domain is in, like a label on a parking spot:
+- `clientTransferProhibited` = normal, just protected from being stolen/transferred.
+- `serverHold` = the domain has been frozen by the registry, often because of bad behavior.
+- `pendingDelete` = the domain is about to be deleted, sometimes because it was suspended for abuse.
+
+---
+
+## 2. Investigating IP Addresses
+
+### IP Address
+Every website also has a hidden "real" address made of numbers, called an IP address (like `142.250.190.14`). It's like the GPS coordinates behind the street name.
+
+### IP WHOIS
+Just like domains have owner cards, chunks of IP addresses have owner cards too. An IP WHOIS lookup tells you:
+- Which company or organization owns that block of numbers
+- Which region manages it
+- Who to complain to if something bad is happening from that IP
+
+### RIR (Regional Internet Registry)
+The five big "governments" that hand out IP addresses around the world:
+- ARIN â€“ North America
+- RIPE NCC â€“ Europe & Middle East
+- APNIC â€“ Asia-Pacific
+- LACNIC â€“ Latin America
+- AFRINIC â€“ Africa
+
+### CIDR Notation
+A shorthand way of writing "this whole neighborhood of IP addresses," like `192.0.2.0/24` â€” instead of listing every single house number, it lists the whole block at once.
+
+### Bulletproof Hosting
+Some hosting companies don't care if criminals use their servers and ignore abuse complaints â€” like a landlord who rents to anyone, no questions asked, even known troublemakers. Investigators watch for IPs from these providers as a warning sign.
+
+---
+
+## 3. Detective Techniques (Pivoting)
+
+"Pivoting" means using one clue to find the next clue â€” like pulling a thread to unravel a sweater.
+
+### Reverse WHOIS
+Instead of asking "who owns this domain?" you ask "what other domains does this same email/person/company own?" If one scam email is linked to a person, reverse WHOIS can reveal 30 other suspicious websites they registered too.
+
+### Reverse DNS
+Instead of asking "what's the IP for this domain?" you ask "what other domains point to this same IP address?" Criminals often host multiple fake sites on one server to save money â€” this technique finds all of them.
+
+### Historical WHOIS
+A "time machine" for owner cards. Even if a website's current WHOIS is hidden today, older snapshots (especially from before May 2018) sometimes still show the real name and email that was later hidden.
+
+### GDPR & Redacted WHOIS
+GDPR is a European privacy law. Since 2018, most WHOIS records now hide personal information and just show "REDACTED FOR PRIVACY" instead of a real name â€” like the owner's card being covered with a sticky note. Investigators work around this using historical records, nameservers, and IPs, which usually stay visible.
+
+### Privacy Proxy Service
+A company (like "Domains By Proxy") that owners pay to put their own name and address on the WHOIS record instead of the real owner's â€” like hiring someone to answer your door and pretend it's their house.
+
+### RDAP
+A newer, cleaner replacement for old-fashioned WHOIS lookups. Same idea (an owner's card), but returned in a modern, computer-friendly format (JSON) instead of old plain text.
+
+### Certificate Transparency (CT) Logs
+Every time a website gets its "padlock" (HTTPS security certificate), that event gets logged publicly. Even if WHOIS is totally hidden, investigators can peek at these certificate logs to find hidden subdomains or spot many sites made by the same organization.
+
+---
+
+## 4. How to Perform a WHOIS Lookup â€” Step by Step
+
+This is the simple, beginner version: just checking one domain (or IP) and reading the card.
+
+1. **Pick your target.** Decide what you want to look up â€” a domain name (like `example.com`) or an IP address (like `93.184.216.34`).
+2. **Open a WHOIS lookup tool.** You can use a free tool such as ICANN's WHOIS lookup, or a site like WhoisFreaks, Whois.com, or `whois` command-line tool on Mac/Linux.
+3. **Type in the domain or IP and search.** Just like typing an address into a map app.
+4. **Read the record that comes back.** Look for these key fields first:
+   - Registrar name
+   - Registrant name / organization / email
+   - Registration date and expiry date
+   - Nameservers
+   - Domain status codes
+5. **Check if it's redacted.** If you see "REDACTED FOR PRIVACY" instead of a name, the owner is using a privacy service. Note the registrar instead â€” that's your next contact point.
+6. **Note the registration date.** Compare it to anything suspicious (like when a scam email was sent). A domain made only days before an incident is a warning sign.
+7. **Look up historical WHOIS (optional).** If today's record is hidden, check historical WHOIS tools to see if older snapshots (especially pre-2018) show unredacted details.
+8. **Look up the IP address too.** Find the domain's IP (through a DNS lookup) and run a separate IP WHOIS lookup to see who hosts it and in which country.
+9. **Pivot if needed.** If you want to go deeper (find other related domains), use Reverse WHOIS on the email/organization, or Reverse DNS on the IP/nameservers.
+10. **Write down what you found.** Note the date, the tool used, and the exact fields you saw â€” so you (or someone else) can check it again later.
+
+That's it â€” steps 1 to 6 are enough for a simple lookup; steps 7 to 10 are for a deeper investigation.
+
+---
+
+## 5. Quick Glossary Cheat Sheet
+
+| Term | Kid-Simple Meaning |
+|---|---|
+| WHOIS | The "owner's card" for a website |
+| Registrar | The shop that sold/rents the domain |
+| Registrant | The actual owner |
+| Nameserver | The phonebook that routes visitors |
+| IP Address | The website's numeric "GPS location" |
+| RIR | The regional office that hands out IP addresses |
+| Reverse WHOIS | Find all domains owned by the same person |
+| Reverse DNS | Find all domains hosted on the same IP |
+| GDPR Redaction | Owner info hidden/blacked out for privacy |
+| RDAP | The modern, upgraded version of WHOIS |
+| Domain Status Code | A tag showing if a domain is fine, frozen, or about to be deleted |
+| CT Logs | Public record of every website's security certificate |
+
+---
+
+*Adapted and simplified for learning purposes from the WhoisFreaks blog post ["What Is WHOIS OSINT? Domain and IP Investigation Workflow"](https://whoisfreaks.com/resources/blog/mastering-whois-osint-for-effective-domain-and-ip-investigations).*
