@@ -1,0 +1,91 @@
+What is the Wayback Machine?
+The Wayback Machine, created by the Internet Archive (a non-profit digital library founded in 1996), is a digital archive of the World Wide Web. In simple terms, it is a massive historical time machine for the internet.
+It periodically crawls public websites, takes snapshots of their HTML, CSS, JavaScript, images, and documents, and stores them permanently. This allows investigators to view what any website looked like months or even decades ago.
+How It Works (The Core Theory)
+Understanding the mechanics of how the Wayback Machine captures the internet helps security analysts know what data is preserved and where gaps might exist.
+1. Automated Crawling (The Robots)
+ * Heritrix Crawler: The Internet Archive uses a specialized open-source web crawler called Heritrix.
+ * Discovery: The crawler discovers URLs through seed lists, internal/external link mapping, and global DNS records. It sends standard HTTP GET requests to public websites, downloads the responses, and saves them into a massive append-only storage system called WARC (Web ARChive) files.
+2. CDX Server (The Index)
+ * Behind the scenes, every captured URL is indexed into a database query system called the CDX Index.
+ * When you search for a URL, the CDX index maps out every single timestamp (capture date) available for that specific address without needing to scan every WARC file manually.
+Why the Wayback Machine is Crucial for OSINT
+In cybersecurity and Open Source Intelligence (OSINT), the present-day view of a website only tells half the story. The Wayback Machine provides critical historical intelligence:
+ * Uncovering Deleted Content: Companies frequently take down pages, blog posts, or error messages that contain sensitive data. The Wayback Machine remembers them.
+ * Tracking Infrastructure Evolution: Analysts can track how a target's web application architecture, tech stack, or employee directory changed over time.
+ * Finding Forgotten Subdomains or Endpoints: Old JavaScript files, documentation links, or API endpoints left in historical versions can expose modern vulnerabilities.
+Key Information We Get from the Archive
+ * Historical Source Code & Comments: Old HTML source code often contained developer comments, internal server names, or forgotten credentials that engineers later cleaned up.
+ * Previous Employee Directories & Contact Info: Older versions of "About Us" or "Team" pages often list full names, old email formats, phone numbers, and organizational hierarchies.
+ * Exposed Documents & PDFs: Old policy documents, internal roadmaps, or network diagrams uploaded years ago and forgotten.
+ * Historic Vulnerability Disclosures: Old changelogs or blog posts detailing past software patches or system outages.
+Methodology: How to Use It in an Investigation
+ 1. 1. Direct URL Query
+   Go to archive.org/web, paste the target domain (e.g., example.com), and inspect the calendar timeline to view snapshots across different years.
+ 2. 2. Wildcard URL Searching (URL Substring Search)
+   Instead of checking a single page, you can search using wildcards (e.g., [example.com/](https://example.com/)*) via the Wayback Machine search bar or CDX API to pull every single file and subfolder ever archived for that domain.
+ 3. 3. Filtering by File Type
+   Filter historical archives for specific sensitive file extensions (e.g., .pdf, .xls, .conf, .txt, .bak) to find leaked documents.
+ 4. 4. Automated Enumeration via Tooling
+   Use specialized OSINT tools like WaybackUrls or gau (Get All URLs) to programmatically pull all historical endpoints into a local text file for analysis.
+Advanced Automation: The CDX API
+Investigators often need to process thousands of archived URLs programmatically rather than clicking through a browser. The Internet Archive provides a free CDX Server API.
+ * Basic API Query Structure:
+   http://web.archive.org/cdx/search/cdx?url=example.com/*&output=json
+
+ * Command-Line Tool Example (waybackurls):
+   Security professionals use Go-based tools like waybackurls in Kali Linux to pull URLs instantly:
+   waybackurls example.com > historical_urls.txt
+
+Pros
+ * Historical Depth: Provides visibility into web assets that no longer exist on the live internet.
+ * Completely Passive: Searching the Wayback Machine database requires zero interaction with the target's live servers, leaving absolute zero trace.
+ * Free and Open Access: No API key or expensive subscription is required to access the core archive data.
+Limitations & Critical Conditions
+ * robots.txt Compliance (The Opt-Out Rule):
+   <Callout title="Important Archival Limitation" type="warning">
+   If a website owner applies a robots.txt exclusion or requests retroactive removal, the Internet Archive can block or hide historical captures of that domain. Furthermore, site owners can opt out entirely, meaning some targeted sites may have zero historical footprint.
+   </Callout>
+ * Incomplete Snaps: Complex modern web apps built with heavy dynamic JavaScript (React, Angular) often break or render blank when viewed through static historical HTML snapshots.
+ * Gaps in Coverage: High-traffic sites are captured multiple times a day; obscure or smaller corporate sites might only be captured once every few months or years, missing short-lived sensitive leaks.
+
+
+Using command-line tools like waybackurls (by Tomnomnom) and gau (Get All URLs by Corelan/lc) allows you to pull thousands of historical URLs from public archives (such as the Wayback Machine and Common Crawl) directly into your terminal.
+Once you collect these URLs, you can filter them using standard Linux text-processing commands (grep, awk) to find sensitive files, backups, and administrative paths.
+Step 1: Installing the Tools in Kali Linux
+Both tools are written in Go. If you have Go installed on Kali Linux, you can install them with the following commands:
+# Install waybackurls
+go install github.com/tomnomnom/waybackurls@latest
+
+# Install gau
+go install github.com/lc/gau/v2/cmd/gau@latest
+
+(Make sure your Go bin directory is in your system $PATH, or run them from ~/go/bin/).
+Step 2: Collecting Raw Historical URLs
+ * Using waybackurls: Pulls endpoints exclusively from the Wayback Machine.
+   waybackurls example.com > urls.txt
+
+ * Using gau: Pulls endpoints from multiple aggregators simultaneously (Wayback Machine, Common Crawl, OTX AlienVault, and URLScan). This usually yields a much larger dataset.
+   gau example.com --providers wayback,commoncrawl > urls.txt
+
+Step 3: Filtering for Sensitive Files Using grep
+A target domain's historical URL list can easily contain tens of thousands of lines of junk images, CSS files, and JavaScript scripts. To isolate high-value, sensitive files, use grep with regular expressions.
+1. Finding Config, Backup, and Database Files
+Attackers and developers often leave old configuration files, database dumps, or backup archives exposed on servers.
+grep -E "\.(sql|bak|conf|config|zip|tar|gz|sql.gz|db|sqlite)$" urls.txt
+
+2. Finding Document and Spreadsheet Files (.pdf, .xls, .docx)
+Older versions of corporate websites often leaked internal documents, employee handbooks, or financial sheets.
+grep -E "\.(pdf|xls|xlsx|doc|docx|csv|txt)$" urls.txt
+
+3. Finding Login Portals and Admin Endpoints
+Search historical URLs for paths containing administrative or sign-in keywords:
+grep -E "(admin|login|dashboard|portal|config|setup|secret)" urls.txt
+
+Step 4: Advanced One-Liner Pipeline
+You can combine collection and filtering into a single terminal command without saving a massive raw text file first:
+gau example.com | grep -E "\.(sql|bak|conf|pdf|xls|zip)$" | sort -u > sensitive_files.txt
+
+ * sort -u: Strips out duplicate URLs so you are left with a clean, unique list of targets to investigate.
+
+
