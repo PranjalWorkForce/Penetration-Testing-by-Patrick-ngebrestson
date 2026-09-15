@@ -97,3 +97,45 @@ Pros
    (Verification: Check your current folder for the generated report file to confirm data export).
 Critical Condition
  * Search Engine Rate Limiting: Search engines (especially Google) heavily guard their results against automated scripts. If you run too many queries too fast, your IP address will face temporary blocks or CAPTCHAs, causing theHarvester to return zero results.
+
+
+
+       SEARCH ENGINE DERIVES 
+
+In theHarvester, Search Engine Drivers (often referred to as modules or sources) are the built-in connectors or plugins that tell the tool where to look for data.
+Instead of writing custom scripts to scrape Google, Bing, or specialized security databases one by one, theHarvester uses these drivers to automatically send queries, parse the raw responses, and pull out structured data (like emails, subdomains, and IP addresses).
+Categories of Drivers in theHarvester
+The data sources used by the tool can be broken down into four major categories:
+1. Traditional Search Engines
+These drivers query mainstream web search engines using advanced search operators (like site:, inurl:, or email syntax formatting) to find indexed pages mentioning the target domain.
+ * Examples: google, bing, duckduckgo, yahoo, baidu
+ * What they find: Frequently indexed email addresses, public documents, employee names, and structural mentions of subdomains scattered across the web.
+ * The Catch: Mainstream search engines aggressively block automated scripts. If you run too many requests too quickly, they will throw up CAPTCHAs or block your IP address, causing these drivers to return zero results.
+2. Certificate Transparency (CT) Logs
+Certificate Authority databases track every SSL/TLS certificate ever issued for a domain. Because organizations must register a certificate for every new subdomain or secure portal they spin up, these logs are a goldmine for finding hidden assets.
+ * Examples: crtsh (Comodo Certificate Transparency log)
+ * What they find: Massive lists of subdomains. Even if a company tries to keep a server hidden from public search engines, they usually have to register a public SSL certificate for it, leaving a permanent digital footprint.
+ * The Catch: These logs are entirely passive and heavily reliable, rarely resulting in blocks.
+3. Threat Intelligence & Security Platforms
+These drivers tap into specialized cybersecurity databases, search engines for internet-connected devices, and breach-monitoring tools.
+ * Examples: shodan, censys, virustotal, securitytrails, intelx, anubis
+ * What they find: Open ports, backend IP addresses, associated hosting providers, infrastructure details, and historical DNS data.
+ * The Catch: Many of these platforms (like Shodan or SecurityTrails) require you to register an account and supply an API key inside theHarvester's configuration file (api-keys.yaml) to use them. Free tiers usually have monthly query limits.
+4. Developer & Code Repositories / Leak Sites
+These drivers look deep into developer platforms where code, configuration files, and internal corporate footprints are accidentally leaked.
+ * Examples: github, hunter.io
+ * What they find: Developer email addresses, hardcoded internal subdomains, API keys, or infrastructure paths accidentally exposed in public code repositories.
+How Drivers Work Under the Hood
+ * Query Construction: When you pass a flag like -b google, theHarvester takes your target domain (example.com) and wraps it into specific search strings (e.g., site:example.com to find pages or @example.com to find emails).
+ * Request Dispatching: The driver sends these queries out to the selected platform's web interface or API.
+ * Regex Parsing (Scraping): As the raw HTML or JSON response comes back, the driver runs Regular Expressions (Regex) across the text to instantly extract patterns matching email formats, IP addresses, or domain names.
+ * Deduplication: The tool compiles data from all chosen drivers, strips out duplicate entries, and presents a clean, unified list in your terminal or exported report file.
+Summary of Popular Drivers & Their Flags
+| Driver Flag (-b) | Type | Requires API Key? | Best Used For |
+|---|---|---|---|
+| google | Search Engine | No | Broad employee email and page discovery |
+| bing | Search Engine | No | Alternative web index search (often less aggressive blocking than Google) |
+| crtsh | Certificate Log | No | Finding deep, hidden subdomains via SSL logs |
+| shodan | Threat Intel | Yes | Finding exposed servers, open ports, and infrastructure IPs |
+| github | Code Platform | Optional | Finding developer emails and leaked subdomains in source code |
+| all | Multi-Source | Varies | Queries all available drivers simultaneously for maximum data footprint |
