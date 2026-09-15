@@ -1,0 +1,154 @@
+# Subdomain Enumeration — OSINT/Recon Notes
+
+## What Is It? (Simple Explanation)
+
+A domain like `example.com` is just the "main house." But companies build many extra structures around it — `mail.example.com`, `dev.example.com`, `api.example.com`, `blog.example.com` — these are **subdomains**. 
+
+**Subdomain enumeration** = the process of finding **all** these subdomains, including the ones that are hidden, forgotten, or never linked publicly.
+
+> Simple analogy: If `example.com` is a big company campus, subdomains are every building inside it — the main office, the warehouse, the old test lab nobody uses anymore, the server room. Enumeration is walking around the whole campus and mapping every building, not just the front entrance.
+
+## Why Do This? (Purpose)
+
+- The **main website** is usually well-secured and monitored.
+- But **subdomains** (especially old, forgotten, or dev/test ones) are often:
+  - Poorly maintained
+  - Running outdated software
+  - Missing authentication
+  - Not monitored by security teams
+- Attackers (and ethical hackers) look for subdomains because they're the **weakest entry points** into a bigger target.
+
+## Benefits of Subdomain Enumeration
+
+| Benefit | Explanation |
+|---|---|
+| **Expanded attack surface visibility** | You see the full scope of what a company actually runs online, not just the homepage |
+| **Finds forgotten assets** | Old staging servers, test apps, and abandoned projects often stay online for years |
+| **Reveals internal tools** | HR portals, VPN logins, admin panels, dev environments |
+| **Helps bug bounty hunters** | Most bug bounty programs are scoped to `*.example.com` — more subdomains = more chances to find bugs |
+| **Supports risk assessment** | Security teams use it to audit their own exposure ("shadow IT") |
+| **Pre-attack reconnaissance** | First real step in almost every penetration test or red team engagement |
+
+## Types of Subdomain Enumeration
+
+### 1. **Passive Enumeration** (no direct contact with target's servers)
+You gather subdomains from **external, already-existing data sources** — so the target never knows you're looking.
+
+**Sources:**
+- Certificate Transparency logs (crt.sh) — as covered earlier
+- Search engines (Google dorking: `site:*.example.com`)
+- DNS aggregators (SecurityTrails, VirusTotal, Shodan, Censys)
+- Public datasets (Common Crawl, Rapid7 Sonar)
+- Archive.org / Wayback Machine
+
+### 2. **Active Enumeration** (direct interaction with target's DNS/servers)
+You **directly query** the target's infrastructure — this can be detected/logged by the target.
+
+**Methods:**
+- **Brute-forcing**: Try thousands of common subdomain names (`admin`, `dev`, `test`, `api`, `staging`) against the domain's DNS
+- **DNS zone transfers** (if misconfigured — rare but high-value find)
+- **Permutation scanning**: Combine known subdomains with common words (`dev-api`, `api-v2`, `test-admin`)
+- **Reverse DNS lookups** on IP ranges owned by the target
+
+## Tools (Practical List)
+
+|            Tool      |  Type   |              What It Does              |
+|           crt.sh     | Passive |            Web-based CT log search |
+|       Subfinder      | Passive |            Fast, aggregates 20+ passive sources |
+|      Amass (OWASP)   | Passive + Active |   Most comprehensive; combines many techniques |
+|         Sublist3r    | Passive |            Older but simple, pulls from search engines + CT |
+|        Assetfinder   | Passive |            Lightweight, quick |
+|          DNSrecon    | Active |             DNS enumeration, zone transfer testing |
+|          Massdns     | Active |             Extremely fast DNS resolver for brute-forcing |
+|  Gobuster (dns mode) | Active |             Brute-force subdomains with wordlists |
+|           httpx      | Verification |       Checks which discovered subdomains are actually **alive** |
+|    Shodan / Censys   | Passive      |            Search engines for internet-connected devices/certs |
+
+## Working Methodology (Step-by-Step)
+
+```
+1. Passive Collection
+   └── Run Subfinder, Amass (passive mode), crt.sh search
+   └── Goal: gather as many subdomains as possible without touching target servers
+
+2. Merge & Deduplicate
+   └── Combine results from all tools into one clean list
+   └── Remove duplicates
+
+3. Active Brute-Forcing (optional, if authorized)
+   └── Use Gobuster/Massdns with a wordlist (e.g., SecLists) 
+   └── Try permutations: dev, staging, test, api, admin, old, backup, v1, v2
+
+4. DNS Resolution
+   └── Resolve each subdomain to check if it has an active IP
+   └── Discard "dead" ones (or note them — dead subdomains can be a subdomain takeover risk!)
+
+5. Liveness Check (HTTP probing)
+   └── Use httpx to see which resolved subdomains actually respond on port 80/443
+   └── Screenshot them if doing recon (tools like eyewitness/aquatone)
+
+6. Prioritize Interesting Targets
+   └── Look for: admin, dev, test, staging, internal, vpn, api, old, backup, beta
+   └── These are usually less protected and higher value
+
+7. Deeper Recon (next phase)
+   └── Port scanning (Nmap)
+   └── Technology fingerprinting (Wappalyzer, whatweb)
+   └── Vulnerability scanning (with authorization only)
+```
+
+### Example (Conceptual Walkthrough)
+
+Target: `example.com`
+
+```bash
+# Step 1: Passive
+subfinder -d example.com -o passive.txt
+amass enum -passive -d example.com -o amass.txt
+
+# Step 2: Merge
+cat passive.txt amass.txt | sort -u > all_subs.txt
+
+# Step 3: Active brute-force (only if authorized!)
+gobuster dns -d example.com -w subdomains-wordlist.txt -o brute.txt
+
+# Step 4: Combine everything
+cat all_subs.txt brute.txt | sort -u > final_list.txt
+
+# Step 5: Check which are alive
+httpx -l final_list.txt -o alive.txt
+```
+
+**Result:** You might go from knowing **2 subdomains** to discovering **50+**, including things like:
+- `jenkins.example.com` (a CI/CD tool — often misconfigured, high value for attackers)
+- `staging-api.example.com` (a copy of production, sometimes with weaker auth)
+- `old-blog.example.com` (running outdated WordPress — easy target)
+
+## Cybersecurity Perspective
+
+### From the Attacker's Side (Red Team / Malicious Actor)
+- Subdomains = **more doors to try**
+- Forgotten subdomains often = **weaker locks**
+- A single vulnerable subdomain can give a foothold into the whole network (lateral movement)
+- Especially dangerous: **subdomain takeover** — when a subdomain's DNS points to a service (like AWS S3, GitHub Pages, Heroku) that's no longer claimed. An attacker can claim it and host malicious content **under the trusted company domain**.
+
+### From the Defender's Side (Blue Team / Security Team)
+- Companies should **enumerate their own subdomains regularly** (attack surface management) to find what they've forgotten
+- Should **decommission old subdomains properly** (delete DNS records too, not just the server)
+- Should monitor CT logs for **unexpected new certificates** (could indicate a rogue/shadow IT deployment or even a phishing cert impersonating them)
+- Many companies now use **Attack Surface Management (ASM)** platforms that automate this exact process defensively
+
+## Key Assumptions
+
+1. **Assumption:** More subdomains = larger attack surface → **generally true**, more exposed services statistically means more chances of misconfiguration.
+2. **Assumption:** All discovered subdomains are currently active → **false**, many are stale/dead; these still matter (takeover risk).
+3. **Assumption:** Passive enumeration is always "safe"/undetectable → **mostly true**, since you're not touching the target directly, but be aware some passive sources (like using Shodan) may still be logged if you interact with the live host afterward.
+4. **Assumption:** Brute-force enumeration will find everything → **false**, it only finds what's in your wordlist; a subdomain named `x7k9-internal.example.com` won't be guessed.
+
+## Legal/Ethical Note
+Passive enumeration (crt.sh, Subfinder, etc.) is generally safe since you're only querying public third-party data. **Active enumeration** (brute-forcing directly against a target's DNS servers) should only be done on domains you **own** or have **explicit written authorization** to test (e.g., through a bug bounty program scope or a signed pentest agreement).
+
+## One-Line Summary
+**Subdomain enumeration is the process of discovering every subdomain tied to a target domain — combining passive (public data) and active (direct queries) techniques — to map the full attack surface and uncover forgotten, misconfigured, or high-value assets.**
+
+Want the next notes on **Subdomain Takeover** (a specific vulnerability class that builds directly on this) or **Google Dorking / Search Engine OSINT**?
