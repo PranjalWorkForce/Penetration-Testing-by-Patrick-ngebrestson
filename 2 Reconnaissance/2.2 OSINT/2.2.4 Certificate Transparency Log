@@ -1,0 +1,62 @@
+# Certificate Transparency (CT) — OSINT Notes
+
+## What is it? (Simple Explanation)
+
+Every time a website gets an SSL/TLS certificate (the thing that makes a URL show "https://" and a padlock icon), that certificate is **logged in a public database** called a Certificate Transparency Log. This was created so that fake or malicious certificates could be caught early. But for OSINT investigators, it's a goldmine — because **anyone can search these logs** to see every subdomain a company or person has ever requested a certificate for.
+
+Think of it like this: 
+> Every time someone builds a new "room" (subdomain) in their house (domain), they have to publicly register the blueprint. You, as an outsider, can look at the public registry and see every room they've ever built — even ones they forgot to lock, or ones they built secretly for testing.
+
+## Why It Matters for OSINT
+
+- Reveals **hidden/forgotten subdomains** (dev servers, staging sites, admin panels)
+- Helps map a company's **entire attack surface**
+- Can expose **internal project names**, new products before launch, or infrastructure
+- Works even if the subdomain isn't linked anywhere on the public website (no way to "hide" a subdomain from CT once a cert is issued)
+
+## Simple Example
+
+Say a company is `example.com`. Publicly, you only know about:
+- `www.example.com`
+- `mail.example.com`
+
+But by searching Certificate Transparency logs, you discover:
+- `dev.example.com` (a development server — maybe insecure)
+- `staging-payments.example.com` (a testing environment for the payment system)
+- `internal-vpn.example.com` (a VPN portal, not meant for public eyes)
+- `hr-portal-2026.example.com` (an HR system, possibly with weak security)
+
+None of these were advertised anywhere. But because each one needed an HTTPS certificate, they all got logged publicly — and now you know they exist.
+
+## Common Tools (OSINT Practice)
+
+| Tool | What it does |
+|---|---|
+| **crt.sh** | Free website to search CT logs by domain name |
+| **Censys** | Search engine that also uses CT data plus scan data |
+| **SecurityTrails** | Combines CT logs with DNS history |
+| **Amass** (by OWASP) | Automated subdomain enumeration using CT + other sources |
+| **Sublist3r / Subfinder** | CLI tools that pull from CT logs among other sources |
+
+### Example crt.sh search (conceptual)
+If you go to `crt.sh` and type `%.tesla.com`, it will return **every certificate ever issued** for any subdomain of tesla.com — including old, expired, or test ones that were never meant to be public.
+
+## Key Assumptions in CT-based OSINT
+
+1. **Assumption:** If a subdomain has an SSL certificate, it's logged — this is *mostly* true because major browsers (Chrome, Safari) now require CT logging for a certificate to be trusted, so almost all real-world certs after ~2018 are logged.
+2. **Assumption:** A logged subdomain still exists and is live — **not always true**. The DNS record might be deleted even though the cert log entry remains forever (logs are permanent/append-only).
+3. **Assumption:** Wildcard certs (`*.example.com`) hide individual subdomain names — **true**, this is one limitation. If a company uses a single wildcard cert, you won't see specific subdomain names in CT logs.
+4. **Assumption:** Internal-only (non-public) hostnames won't be exposed — **false in some cases**. If an organization uses a public CA (like Let's Encrypt) even for an "internal" service, it still gets logged publicly, which is a common mistake companies make.
+
+## Quick Workflow (For Practice/Learning)
+
+1. Pick a target domain (e.g., a domain you own or are authorized to test)
+2. Search it on `crt.sh` or use `subfinder -d example.com`
+3. Collect the list of subdomains
+4. Check which ones are still **live** (using tools like `httpx` or manually visiting them)
+5. Note interesting ones: `dev-`, `test-`, `staging-`, `admin-`, `internal-`, `old-`, `backup-`
+
+## One-Line Summary
+**Certificate Transparency logs are public, permanent records of every HTTPS certificate ever issued — making them one of the most reliable, free OSINT sources for discovering a target's hidden or forgotten subdomains.**
+
+Want me to also cover **DNS-based OSINT** or **how to pivot from a subdomain list into deeper recon** (like port scanning or tech fingerprinting) as a next set of notes?
