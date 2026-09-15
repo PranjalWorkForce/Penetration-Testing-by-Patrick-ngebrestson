@@ -83,3 +83,269 @@ Pull all open ports, banners, vulnerabilities, and location data associated with
    (Verification: Prints a detailed structural profile of open ports and organizational metadata for that IP).
 
 
+
+
+
+
+Writing a Python script to automate lookups using the official Shodan library (shodan) is a straightforward way to scale your reconnaissance or asset discovery workflows.
+Step 1: Install the Shodan Python Library
+Before writing your script, make sure you have the official library installed in your terminal environment:
+pip install shodan
+
+Step 2: Write an Automation Script for Searching
+Here is a clean, reusable Python script that takes a search query, queries the Shodan database, handles API errors gracefully, and prints matching IP addresses, ports, and product details.
+#!/usr/bin/env python3
+import shodan
+import sys
+
+# Replace with your actual Shodan API key or use environment variables
+SHODAN_API_KEY = "YOUR_API_KEY_HERE"
+
+def search_shodan(query):
+    try:
+        # Initialize the Shodan API client
+        api = shodan.Shodan(SHODAN_API_KEY)
+        
+        print(f"[*] Searching Shodan for query: '{query}'...")
+        result = api.search(query)
+        
+        print(f"[+] Total devices found globally: {result['total']}\n")
+        
+        # Loop through the matches and extract key details
+        for service in result['matches']:
+            ip = service.get('ip_str')
+            port = service.get('port')
+            product = service.get('product', 'Unknown Product')
+            org = service.get('org', 'Unknown Org')
+            
+            print(f"IP Address: {ip}:{port}")
+            print(f"Organization: {org}")
+            print(f"Product/Service: {product}")
+            print("-" * 40)
+            
+    except shodan.APIError as e:
+        print(f"[-] Shodan API Error: {e}")
+    except Exception as e:
+        print(f"[-] An error occurred: {e}")
+
+if __name__ == "__main__":
+    # Example search query (e.g., finding Apache servers in a specific country)
+    target_query = 'product:"Apache" country:"NP"'
+    search_shodan(target_query)
+
+Step 3: Write a Script to Lookup a Specific Host IP
+If you already have a target IP address and want to programmatically pull all open ports, vulnerabilities, and banners for it, you can use the api.host() method:
+#!/usr/bin/env python3
+import shodan
+
+SHODAN_API_KEY = "YOUR_API_KEY_HERE"
+target_ip = "8.8.8.8"
+
+try:
+    api = shodan.Shodan(SHODAN_API_KEY)
+    
+    # Query specific host data
+    host_info = api.host(target_ip)
+    
+    print(f"IP: {host_info.get('ip_str')}")
+    print(f"Organization: {host_info.get('org', 'N/A')}")
+    print(f"Operating System: {host_info.get('os', 'N/A')}")
+    print("\n--- Open Ports & Services ---")
+    
+    for item in host_info.get('data', []):
+        print(f"Port: {item.get('port')}")
+        print(f"Banner / Details:\n{item.get('data')}")
+        print("=" * 40)
+
+except shodan.APIError as e:
+    print(f"[-] Error: {e}")
+
+Key API Methods to Remember
+ * api.search(query): Searches the global database using standard filters (product:, country:, port:) and returns a dictionary containing a list of matches and total counts.
+ * api.host(ip_address): Pulls a deep historical and current technical profile for a single target IP address.
+ * api.count(query): Quickly checks how many results match a query string without spending bandwidth downloading full match records.
+
+
+
+
+When a Shodan search returns more than 100 results, Shodan splits the output into pages, with each page returning a maximum of 100 results by default. To fetch records beyond the first 100, you must explicitly pass the page parameter into the api.search() method.
+How Pagination Works in the Shodan API
+ * Page Parameter: You control pagination using api.search(query, page=number) where number starts at 1 for the first batch, 2 for the second, and so on.
+ * Total Count Extraction: The initial search query returns a JSON dictionary containing a 'total' key. You can use this total count to programmatically calculate how many pages you need to loop through.
+ * Credit Consumption Warning: Depending on your Shodan subscription tier, requesting pages beyond the first page typically consumes query credits. Keep an eye on your account limits using shodan info before running massive multi-page scraping scripts.
+Python Script for Handling Pagination
+Here is a complete, production-ready script that automatically calculates the total number of pages for a query and loops through them to collect all available matches safely:
+#!/usr/bin/env python3
+import shodan
+import time
+
+SHODAN_API_KEY = "YOUR_API_KEY_HERE"
+
+def search_with_pagination(query):
+    try:
+        api = shodan.Shodan(SHODAN_API_KEY)
+        
+        # 1. Run the initial search to get the total count and first page
+        print(f"[*] Running initial search for: '{query}'")
+        result = api.search(query, page=1)
+        total_results = result.get('total', 0)
+        
+        print(f"[+] Total devices found globally: {total_results}")
+        
+        if total_results == 0:
+            return []
+
+        all_matches = []
+        all_matches.extend(result['matches'])
+        
+        # 2. Shodan standard API returns 100 results per page
+        results_per_page = 100
+        total_pages = (total_results // results_per_page) + (1 if total_results % results_per_page > 0 else 0)
+        
+        print(f"[*] Total pages to fetch: {total_pages}")
+        
+        # 3. Loop through remaining pages (starting from page 2)
+        # Note: Adjust the range limit if you want to cap the maximum pages fetched to save credits.
+        for page in range(2, total_pages + 1):
+            print(f"[*] Fetching page {page} of {total_pages}...")
+            
+            try:
+                page_result = api.search(query, page=page)
+                all_matches.extend(page_result['matches'])
+                
+                # Polite delay to prevent rate-limiting errors (HTTP 429)
+                time.sleep(1)
+                
+            except shodan.APIError as e:
+                print(f"[-] API Error on page {page}: {e}")
+                break
+                
+        print(f"[+] Successfully gathered a total of {len(all_matches)} records.")
+        return all_matches
+
+    except shodan.APIError as e:
+        print(f"[-] Shodan API Error: {e}")
+    except Exception as e:
+        print(f"[-] An unexpected error occurred: {e}")
+
+if __name__ == "__main__":
+    # Example query
+    target_query = 'product:"Apache" country:"NP"'
+    results = search_with_pagination(target_query)
+
+Best Practices When Scraping Multiple Pages
+ * Implement a Safety Cap: If a broad search returns 50,000 results, looping through all 500+ pages will exhaust your API credits instantly. Consider adding a maximum page ceiling (e.g., if page > 10: break) during testing.
+ * Add Sleep Delays (time.sleep): Sending rapid, consecutive requests to the Shodan REST API without a short pause can trigger rate-limiting blocks. Always include a 1-second delay between pagination loops.
+ * Save Incrementally: If your script crashes halfway through page 45, you lose the data. Consider writing matches to a local JSON or CSV file inside the loop rather than storing everything solely in memory.
+
+
+Handling HTTP rate limits and exceptions gracefully is essential in security and reconnaissance scripts. If your script floods an API (like Shodan, VirusTotal, or a target web server) too fast, you will trigger blocks, bans, or temporary timeouts (commonly HTTP status code 429 Too Many Requests).
+Key Strategies for Graceful Handling
+ * Catch Specific Exceptions: Avoid broad except: clauses. Catch specific errors provided by the library (e.g., shodan.APIError or requests.exceptions.HTTPError) so you know why a request failed.
+ * Implement Exponential Backoff: Instead of retrying immediately after a failure, wait a short period (e.g., 2 seconds), then double the wait time on each subsequent failure (4s, 8s, 16s) to give the server time to recover.
+ * Use Static Throttling: Insert a small, predictable pause (time.sleep()) between standard requests to stay well beneath API rate limits.
+Python Code Example: Retry and Exponential Backoff
+Here is a robust script pattern using Python's requests library to handle rate limits and temporary network errors automatically:
+#!/usr/bin/env python3
+import time
+import requests
+from requests.exceptions import HTTPError, ConnectionError, Timeout
+
+def safe_api_request(url, max_retries=3):
+    backoff_delay = 2  # Initial wait time in seconds
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"[*] Attempt {attempt} of {max_retries}: Requesting {url}")
+            response = requests.get(url, timeout=10)
+            
+            # Check for HTTP rate limit (429) or server errors (5xx)
+            if response.status_code == 429:
+                print(f"[!] Rate limit hit (429). Retrying in {backoff_delay} seconds...")
+                raise HTTPError("Rate limit exceeded")
+                
+            response.raise_for_status()  # Raises error for 4xx/5xx codes
+            return response.json()
+            
+        except (HTTPError, ConnectionError, Timeout) as e:
+            if attempt == max_retries:
+                print(f"[-] Max retries reached. Request failed: {e}")
+                return None
+            
+            # Wait with exponential backoff before retrying
+            time.sleep(backoff_delay)
+            backoff_delay *= 2  # Double the wait time for the next attempt
+
+if __name__ == "__main__":
+    target_url = "https://api.ipify.org?format=json"
+    data = safe_api_request(target_url)
+    if data:
+        print(f"[+] Success! Response data: {data}")
+
+
+
+To write caught exceptions, rate limits, and failed URLs to a dedicated log file, you can use Python's built-in logging module. This replaces basic print() statements with persistent log entries that include timestamps and error levels (like WARNING or ERROR).
+Updated Python Script with File Logging
+#!/usr/bin/env python3
+import time
+import logging
+import requests
+from requests.exceptions import HTTPError, ConnectionError, Timeout
+
+# 1. Configure the logging system to write to a file named 'error.log'
+logging.basicConfig(
+    filename='error.log',
+    level=logging.ERROR,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+def safe_api_request(url, max_retries=3):
+    backoff_delay = 2  # Initial wait time in seconds
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"[*] Attempt {attempt} of {max_retries}: Requesting {url}")
+            response = requests.get(url, timeout=10)
+            
+            # Check for HTTP rate limit (429) or server errors (5xx)
+            if response.status_code == 429:
+                warning_msg = f"Rate limit hit (429) for URL: {url}"
+                print(f"[!] {warning_msg}. Retrying in {backoff_delay} seconds...")
+                logging.warning(warning_msg)
+                raise HTTPError("Rate limit exceeded")
+                
+            response.raise_for_status()  # Raises error for other 4xx/5xx codes
+            return response.json()
+            
+        except (HTTPError, ConnectionError, Timeout) as e:
+            if attempt == max_retries:
+                error_msg = f"Max retries reached. Failed URL: {url} | Error: {e}"
+                print(f"[-] {error_msg}")
+                # Write the final failure and URL to the dedicated log file
+                logging.error(error_msg)
+                return None
+            
+            # Wait with exponential backoff before retrying
+            time.sleep(backoff_delay)
+            backoff_delay *= 2  # Double the wait time
+
+if __name__ == "__main__":
+    # Example test URL (you can replace this with an invalid URL to test logging)
+    target_url = "https://httpbin.org/status/429"
+    
+    data = safe_api_request(target_url)
+    if data:
+        print(f"[+] Success! Response data: {data}")
+    else:
+        print("[-] Request failed completely. Check 'error.log' for details.")
+
+Key Changes Explained
+ * import logging: Loads Python's native logging library without needing external package installations.
+ * logging.basicConfig(...):
+   * filename='error.log': Automatically creates or appends to a text file named error.log in your current directory.
+   * level=logging.ERROR: Filters out minor debug messages and records errors and warnings.
+   * format=...: Automatically prepends a precise timestamp (asctime) and log severity level (levelname) to every entry.
+ * logging.error() & logging.warning(): Whenever a request hits a rate limit or completely fails after all retries, the URL and exception reason are safely written to the log file in the background while your script continues running.
+
+
+
